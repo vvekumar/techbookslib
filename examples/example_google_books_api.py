@@ -41,21 +41,21 @@ import sys
 import json
 import requests
 from requests.auth import HTTPBasicAuth
+from requests.exceptions import RequestException
 from urllib import urlencode
 import logging
 
 # globals
-API_KEY_PATH= 'C:/Users/Vivek/.api_keys/techbookslib-api.json'
-SEARCH_QUERY_DICT={'categories': 'Nonfiction'}
+API_KEY_PATH = sys.argv[1]
 # 'intitle': 'flowers'} "TITLE" # title/isbn/author/category
-GOOG_BOOKS_HOST="https://www.googleapis.com/books/v1/volumes"
+GOOG_BOOKS_HOST = "https://www.googleapis.com/books/v1/volumes"
 
 # helper functions
 def setup_logger(log_file_name):
 	logger = logging.basicConfig(filename=log_file_name,
-                        		level=logging.DEBUG,
-                        		format='%(asctime)s %(levelname)s [%(filename)s:%(lineno)s - %(funcName)20s() ]: %(message)s',
-                        		datefmt='%m/%d/%Y %I:%M:%S %p')
+                        		 level=logging.DEBUG,
+                        		 format='%(asctime)s %(levelname)s [%(filename)s:%(lineno)s - %(funcName)20s() ]: %(message)s',
+                        		 datefmt='%m/%d/%Y %I:%M:%S %p')
 	return logger
 
 
@@ -83,27 +83,34 @@ def make_http_request(url, key, query):
 
 def show_data(data):
     title_list=[]
-    for item in data['items']:
-        title = item.get('volumeInfo').get('title')
-        if title in title_list:
-            continue
-        else:
-            title_list.append(title)
-        author=",".join(data['items'][0].get('volumeInfo').get('authors'))
+    if data.get('items'):
+        for item in data['items']:
+            title = item.get('volumeInfo').get('title')
+            if title in title_list:
+                continue
+            else:
+                title_list.append(title)
+            author=",".join(data['items'][0].get('volumeInfo').get('authors'))
 
-        print("{},{}".format(title.encode('utf-8'), author.encode('utf-8')))
+            print("{},{}".format(title.encode('utf-8'), author.encode('utf-8')))
+    else:
+        raise RequestException('Search did not return anything! .. ')
 
     return
 
 # main
-# setup logging
-setup_logger(log_file_name='sample_books_api.log')
+if __name__ == '__main__':
+    # setup logging
+    setup_logger(log_file_name='sample_books_api.log')
 
-# Get API key to use
-api_key=parse_api_key_file(file=API_KEY_PATH)
+    # Get API key to use
+    api_key = parse_api_key_file(file=API_KEY_PATH)
 
-# Make an HTTP request and retrieve data
-data = make_http_request(url=GOOG_BOOKS_HOST, key=api_key, query=urlencode(SEARCH_QUERY_DICT).replace("=", ":"))
+    # Make an HTTP request and retrieve data
+    key = input('Enter search key:([TITLE, AUTHOR, ISBN, CATEGORY])')
+    value = input("Enter value: ")
+    SEARCH_QUERY_DICT = {str(key): str(value)}
+    data = make_http_request(url=GOOG_BOOKS_HOST, key=api_key, query=urlencode(SEARCH_QUERY_DICT).replace("=", ":"))
 
-# Show data
-show_data(data)
+    # Show data
+    show_data(data)
